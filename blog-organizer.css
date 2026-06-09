@@ -430,8 +430,10 @@ body {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-top: 22px;
+  flex-wrap: nowrap;
 }
 
 /* ══════════════
@@ -703,6 +705,20 @@ body {
     max-width: 100% !important;
     border-radius: 18px 18px 0 0;
     padding: 24px 20px 32px;
+    box-sizing: border-box;
+  }
+  .modal .modal-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .modal .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    min-width: 64px;
   }
 
   /* 링크 카드 패딩 축소 */
