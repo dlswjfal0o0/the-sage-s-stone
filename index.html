@@ -55,7 +55,7 @@
 </main>
 
 <!-- FAB: 관리자만 보임 -->
-<button class="fab admin-only" id="fab-add" onclick="openAddModal()" title="링크 추가">＋</button>
+<button class="fab admin-only" id="fab-add" onclick="openAddModal()" title="링크 추가" style="display:none">＋</button>
 
 <!-- 링크 추가 모달 -->
 <div class="modal-overlay" id="add-modal">
@@ -203,13 +203,6 @@ function renderSidebar() {
 }
 
 function renderSection(elId, catKey, icon) {
-  if (isAdmin) {
-  const addFolderBtn = document.createElement('button');
-  addFolderBtn.className = 'add-folder-btn';
-  addFolderBtn.innerHTML = `＋ 폴더 추가`;
-  addFolderBtn.onclick = () => openFolderModal(catKey, thinker);
-  fl.appendChild(addFolderBtn);
- }
   const el = document.getElementById(elId);
   const catData = appData[catKey];
   el.innerHTML = '';
@@ -249,6 +242,13 @@ function renderSection(elId, catKey, icon) {
       fl.appendChild(fb);
     });
 
+    if (isAdmin) {
+      const addFolderBtn = document.createElement('button');
+      addFolderBtn.className = 'add-folder-btn';
+      addFolderBtn.innerHTML = `＋ 폴더 추가`;
+      addFolderBtn.onclick = () => openFolderModal(catKey, thinker);
+      fl.appendChild(addFolderBtn);
+    }
     el.appendChild(fl);
   });
 }
