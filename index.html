@@ -16,29 +16,32 @@
 <!-- 사이드바 -->
 <nav id="sidebar">
   <div class="sidebar-header">
-    <div class="sidebar-scroll">
-      <div class="cat-label">사상가</div>
-      <div id="thinker-section"></div>
-      <div id="add-thinker-btn-wrap" style="display:none">
-        <button class="add-item-btn" onclick="openAddEntryModal('thinker')">＋ 사상가 추가</button>
-      </div>
-      <div class="cat-divider"></div>
+    <div class="logo">📚 현자의 돌 <span>블로그 정리</span></div>
+    <div class="sub">카테고리별 게시물 관리</div>
+  </div>
 
-      <div class="cat-label">주제</div>
-      <div id="topic-section"></div>
-      <div id="add-topic-btn-wrap" style="display:none">
-        <button class="add-item-btn" onclick="openAddEntryModal('topic')">＋ 주제 추가</button>
-      </div>
-      <div class="cat-divider"></div>
-
-      <div class="cat-label">2027년 수능 대비 분석</div>
-      <div id="exam-section"></div>
-      <div id="add-exam-btn-wrap" style="display:none">
-        <button class="add-item-btn" onclick="openAddEntryModal('exam')">＋ 항목 추가</button>
-      </div>
+  <div class="sidebar-scroll">
+    <div class="cat-label">사상가</div>
+    <div id="thinker-section"></div>
+    <div id="add-thinker-btn-wrap" style="display:none">
+      <button class="add-item-btn" onclick="openAddEntryModal('thinker')">＋ 사상가 추가</button>
     </div>
+    <div class="cat-divider"></div>
 
-  <!-- 관리자 로그인/로그아웃 버튼 -->
+    <div class="cat-label">주제</div>
+    <div id="topic-section"></div>
+    <div id="add-topic-btn-wrap" style="display:none">
+      <button class="add-item-btn" onclick="openAddEntryModal('topic')">＋ 주제 추가</button>
+    </div>
+    <div class="cat-divider"></div>
+
+    <div class="cat-label">2027년 수능 대비 분석</div>
+    <div id="exam-section"></div>
+    <div id="add-exam-btn-wrap" style="display:none">
+      <button class="add-item-btn" onclick="openAddEntryModal('exam')">＋ 항목 추가</button>
+    </div>
+  </div>
+
   <div class="admin-area">
     <button class="admin-btn" id="admin-toggle-btn" onclick="handleAdminBtn()">
       🔐 관리자 로그인
