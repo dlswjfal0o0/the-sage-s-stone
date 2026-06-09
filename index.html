@@ -9,10 +9,11 @@
 <body>
 
 <!-- 사이드바 토글 -->
-<button class="sidebar-toggle" onclick="toggleSidebar()" title="사이드바 숨기기/보이기">
+<button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="메뉴">
   <span class="toggle-icon">◀</span>
 </button>
 
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <!-- 사이드바 -->
 <nav id="sidebar">
   <div class="sidebar-header">
@@ -97,6 +98,38 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="saveLink()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 사상가/주제/항목 추가 모달 -->
+<div class="modal-overlay" id="entry-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-title" id="entry-modal-title">＋ 추가</div>
+    <div class="form-row">
+      <label class="form-label" id="entry-modal-label">이름</label>
+      <input class="form-input" id="entry-name-input" placeholder="이름 입력"
+        onkeydown="if(event.key==='Enter')submitAddEntry()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEntryModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitAddEntry()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 폴더 추가 모달 -->
+<div class="modal-overlay" id="folder-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-title">📁 폴더 추가</div>
+    <div class="form-row">
+      <label class="form-label" id="folder-modal-label">폴더 이름</label>
+      <input class="form-input" id="folder-name-input" placeholder="폴더 이름 입력"
+        onkeydown="if(event.key==='Enter')submitAddFolder()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeFolderModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitAddFolder()">추가</button>
     </div>
   </div>
 </div>
@@ -536,6 +569,8 @@ document.getElementById('folder-modal').addEventListener('click', function(e) {
 // ── 사이드바 토글 ──
 function toggleSidebar() {
   document.body.classList.toggle('sidebar-hidden');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.classList.toggle('active');
 }
 
 // ── 초기화 ──
