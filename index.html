@@ -16,20 +16,27 @@
 <!-- 사이드바 -->
 <nav id="sidebar">
   <div class="sidebar-header">
-    <div class="logo">📚 현자의 돌 <span>블로그 정리</span></div>
-    <div class="sub">카테고리별 게시물 관리</div>
-  </div>
+    <div class="sidebar-scroll">
+      <div class="cat-label">사상가</div>
+      <div id="thinker-section"></div>
+      <div id="add-thinker-btn-wrap" style="display:none">
+        <button class="add-item-btn" onclick="openAddEntryModal('thinker')">＋ 사상가 추가</button>
+      </div>
+      <div class="cat-divider"></div>
 
-  <div class="cat-label">사상가</div>
-  <div id="thinker-section"></div>
-  <div class="cat-divider"></div>
+      <div class="cat-label">주제</div>
+      <div id="topic-section"></div>
+      <div id="add-topic-btn-wrap" style="display:none">
+        <button class="add-item-btn" onclick="openAddEntryModal('topic')">＋ 주제 추가</button>
+      </div>
+      <div class="cat-divider"></div>
 
-  <div class="cat-label">주제</div>
-  <div id="topic-section"></div>
-  <div class="cat-divider"></div>
-
-  <div class="cat-label">2027년 수능 대비 분석</div>
-  <div id="exam-section"></div>
+      <div class="cat-label">2027년 수능 대비 분석</div>
+      <div id="exam-section"></div>
+      <div id="add-exam-btn-wrap" style="display:none">
+        <button class="add-item-btn" onclick="openAddEntryModal('exam')">＋ 항목 추가</button>
+      </div>
+    </div>
 
   <!-- 관리자 로그인/로그아웃 버튼 -->
   <div class="admin-area">
@@ -193,6 +200,13 @@ function renderSidebar() {
 }
 
 function renderSection(elId, catKey, icon) {
+  if (isAdmin) {
+  const addFolderBtn = document.createElement('button');
+  addFolderBtn.className = 'add-folder-btn';
+  addFolderBtn.innerHTML = `＋ 폴더 추가`;
+  addFolderBtn.onclick = () => openFolderModal(catKey, thinker);
+  fl.appendChild(addFolderBtn);
+ }
   const el = document.getElementById(elId);
   const catData = appData[catKey];
   el.innerHTML = '';
@@ -264,7 +278,8 @@ function renderMain() {
 
   const { cat, thinker, folder } = currentView;
   const allItems = appData[cat][thinker] || [];
-  const items    = folder === null ? allItems : allItems.filter(i => i.folder === folder);
+  const realItems = allItems.filter(i => !i.placeholder);
+  const items = folder === null ? realItems : realItems.filter(i => i.folder === folder);
   const catLabel = cat === 'thinker' ? '사상가' : cat === 'topic' ? '주제' : '2027 수능';
   const folderLabel = folder || '전체 보기';
 
@@ -456,6 +471,65 @@ function deleteItem(cat, thinker, id) {
   renderMain();
 }
 
+let entryTargetCat = null;
+
+function openAddEntryModal(catKey) {
+  if (!isAdmin) return;
+  entryTargetCat = catKey;
+  const labels = { thinker: ['사상가', '사상가 이름'], topic: ['주제', '주제 이름'], exam: ['항목', '항목 이름'] };
+  document.getElementById('entry-modal-title').textContent = `＋ ${labels[catKey][0]} 추가`;
+  document.getElementById('entry-modal-label').textContent = labels[catKey][1];
+  document.getElementById('entry-name-input').value = '';
+  document.getElementById('entry-modal').classList.add('open');
+  setTimeout(() => document.getElementById('entry-name-input').focus(), 80);
+}
+function closeEntryModal() {
+  document.getElementById('entry-modal').classList.remove('open');
+}
+function submitAddEntry() {
+  const name = document.getElementById('entry-name-input').value.trim();
+  if (!name) return alert('이름을 입력해주세요.');
+  if (appData[entryTargetCat][name] !== undefined) return alert('이미 존재하는 이름이에요.');
+  appData[entryTargetCat][name] = [];
+  saveData(appData);
+  closeEntryModal();
+  renderSidebar();
+}
+document.getElementById('entry-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEntryModal();
+});
+
+let folderTargetCat = null;
+let folderTargetThinker = null;
+
+function openFolderModal(catKey, thinker) {
+  if (!isAdmin) return;
+  folderTargetCat = catKey;
+  folderTargetThinker = thinker;
+  document.getElementById('folder-modal-label').textContent = `"${thinker}" 에 추가할 폴더 이름`;
+  document.getElementById('folder-name-input').value = '';
+  document.getElementById('folder-modal').classList.add('open');
+  setTimeout(() => document.getElementById('folder-name-input').focus(), 80);
+}
+function closeFolderModal() {
+  document.getElementById('folder-modal').classList.remove('open');
+}
+function submitAddFolder() {
+  const name = document.getElementById('folder-name-input').value.trim();
+  if (!name) return alert('폴더 이름을 입력해주세요.');
+  const existing = appData[folderTargetCat][folderTargetThinker];
+  const already = existing.some(i => i.folder === name);
+  if (already) return alert('이미 있는 폴더예요.');
+  existing.push({ id: `folder_${Date.now()}`, title: '__folder_placeholder__', url: '', folder: name, tags: [], placeholder: true });
+  saveData(appData);
+  closeFolderModal();
+  renderSidebar();
+  showView(folderTargetCat, folderTargetThinker, name);
+}
+document.getElementById('folder-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeFolderModal();
+});
+
 // ── 사이드바 토글 ──
 function toggleSidebar() {
   document.body.classList.toggle('sidebar-hidden');
@@ -463,6 +537,9 @@ function toggleSidebar() {
 
 // ── 초기화 ──
 applyAdminState();
+['thinker','topic','exam'].forEach(cat => {
+  document.getElementById(`add-${cat}-btn-wrap`).style.display = isAdmin ? 'block' : 'none';
+});
 renderSidebar();
 renderMain();
 </script>
