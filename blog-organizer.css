@@ -489,7 +489,11 @@ body {
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.btn-ghost         { background: var(--bg); color: var(--ink-soft); }
+.btn-ghost {
+  background: var(--bg);
+  color: var(--ink-soft);
+  border-color: #c8b8ae;
+}
 .btn-ghost:hover   { background: var(--rule); }
 .btn-primary       { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
