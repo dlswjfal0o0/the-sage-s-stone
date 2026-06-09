@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>블로그 링크 정리</title>
+<link rel="stylesheet" href="blog-organizer.css">
+</head>
+<body>
+
+<!-- 사이드바 토글 -->
+<button class="sidebar-toggle" onclick="toggleSidebar()" title="사이드바 숨기기/보이기">
+  <span class="toggle-icon">◀</span>
+</button>
+
+<!-- 사이드바 -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">📚 블로그 <span>링크 정리</span></div>
+    <div class="sub">카테고리별 게시물 관리</div>
+  </div>
+
+  <div class="cat-label">사상가</div>
+  <div id="thinker-section"></div>
+  <div class="cat-divider"></div>
+
+  <div class="cat-label">주제</div>
+  <div id="topic-section"></div>
+  <div class="cat-divider"></div>
+
+  <div class="cat-label">2027년 수능 대비 분석</div>
+  <div id="exam-section"></div>
+
+  <!-- 관리자 로그인/로그아웃 버튼 -->
+  <div class="admin-area">
+    <button class="admin-btn" id="admin-toggle-btn" onclick="handleAdminBtn()">
+      🔐 관리자 로그인
+    </button>
+  </div>
+</nav>
+
+<!-- 메인 -->
+<main id="main">
+  <div id="main-content"></div>
+</main>
+
+<!-- FAB: 관리자만 보임 -->
+<button class="fab admin-only" id="fab-add" onclick="openAddModal()" title="링크 추가">＋</button>
+
+<!-- 링크 추가 모달 -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">✏️ 블로그 링크 추가</div>
+
+    <div class="form-row">
+      <label class="form-label">글 제목</label>
+      <input class="form-input" id="f-title" placeholder="게시물 제목을 입력하세요" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">네이버 블로그 URL</label>
+      <input class="form-input" id="f-url" placeholder="https://blog.naver.com/..." />
+    </div>
+    <div class="form-row">
+      <label class="form-label">대분류 카테고리</label>
+      <select class="form-select" id="f-cat" onchange="updateSubCats()">
+        <option value="">선택하세요</option>
+        <option value="사상가">사상가</option>
+        <option value="주제">주제</option>
+        <option value="수능">2027년 수능 대비 분석</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">세부 폴더</label>
+      <div style="display:flex;gap:8px;">
+        <select class="form-select" id="f-folder" style="flex:1">
+          <option value="">대분류를 먼저 선택하세요</option>
+        </select>
+        <button class="btn btn-ghost" style="white-space:nowrap;padding:9px 12px;font-size:12px" onclick="openNewFolderInput()">＋ 새 폴더</button>
+      </div>
+      <input class="form-input" id="f-new-folder" placeholder="새 폴더 이름 입력 후 Enter" style="margin-top:6px;display:none"
+        onkeydown="if(event.key==='Enter')confirmNewFolder()" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">태그 (쉼표로 구분)</label>
+      <input class="form-input" id="f-tags" placeholder="예: 칸트, 도덕법칙, 정언명령" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveLink()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관리자 로그인 모달 -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-title">🔐 관리자 로그인</div>
+    <div class="form-row">
+      <label class="form-label">비밀번호</label>
+      <input class="form-input" id="admin-pw-input" type="password" placeholder="비밀번호 입력"
+        onkeydown="if(event.key==='Enter')submitLogin()" />
+      <div id="login-error" style="color:#d93025;font-size:11.5px;margin-top:6px;display:none;">
+        비밀번호가 틀렸습니다.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeLoginModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// ✏️  비밀번호 변경: 아래 한 줄만 수정하세요
+const ADMIN_PASSWORD = 'admin1234';
+// ════════════════════════════════════════
+
+const STORE_KEY = 'blog_organizer_v1';
+let isAdmin = false;
+let appData = loadData();
+let currentView = null;
+let deleteMode = false;
+
+// ── 데이터 저장/로드 ──
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || getDefaultData(); }
+  catch(e) { return getDefaultData(); }
+}
+function getDefaultData() {
+  return {
+    thinker: { '플라톤': [], '칸트': [], '헤겔': [], '마르크스': [], '니체': [] },
+    topic:   { '윤리와 사상': [], '사회·문화': [], '정치와 법': [], '생활과 윤리': [] },
+    exam:    { '기출 분석': [], '예상 문제': [], '출제 경향': [], '고득점 전략': [] }
+  };
+}
+function saveData(data) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+// ── 관리자 모드 ──
+function applyAdminState() {
+  // FAB
+  document.getElementById('fab-add').style.display = isAdmin ? 'flex' : 'none';
+  // 로그인 버튼 텍스트
+  document.getElementById('admin-toggle-btn').textContent = isAdmin ? '🔓 관리자 로그아웃' : '🔐 관리자 로그인';
+  // 현재 화면 다시 그리기 (관리 버튼 반영)
+  renderMain();
+}
+
+function handleAdminBtn() {
+  if (isAdmin) {
+    isAdmin = false;
+    deleteMode = false;
+    applyAdminState();
+  } else {
+    openLoginModal();
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-modal').classList.add('open');
+  setTimeout(() => document.getElementById('admin-pw-input').focus(), 80);
+}
+function closeLoginModal() {
+  document.getElementById('login-modal').classList.remove('open');
+}
+function submitLogin() {
+  const pw = document.getElementById('admin-pw-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    isAdmin = true;
+    closeLoginModal();
+    applyAdminState();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('admin-pw-input').value = '';
+    document.getElementById('admin-pw-input').focus();
+  }
+}
+
+// 모달 바깥 클릭 시 닫기
+document.getElementById('login-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeLoginModal();
+});
+
+// ── 사이드바 렌더 ──
+function renderSidebar() {
+  renderSection('thinker-section', 'thinker', '👤');
+  renderSection('topic-section',   'topic',   '📖');
+  renderSection('exam-section',    'exam',    '📝');
+}
+
+function renderSection(elId, catKey, icon) {
+  const el = document.getElementById(elId);
+  const catData = appData[catKey];
+  el.innerHTML = '';
+
+  Object.keys(catData).forEach(thinker => {
+    const count  = catData[thinker].length;
+    const isOpen = currentView?.cat === catKey && currentView?.thinker === thinker;
+
+    const btn = document.createElement('button');
+    btn.className = 'thinker-btn' + (isOpen ? ' active' : '');
+    btn.dataset.thinker = thinker;
+    btn.innerHTML = `<span class="icon">▶</span>${icon} ${thinker}`;
+    btn.onclick = () => toggleThinker(btn, catKey, thinker);
+    el.appendChild(btn);
+
+    const fl = document.createElement('div');
+    fl.className = 'folder-list' + (isOpen ? ' open' : '');
+    fl.id = `fl-${catKey}-${thinker}`;
+
+    const folderMap = {};
+    catData[thinker].forEach(item => {
+      if (!folderMap[item.folder]) folderMap[item.folder] = [];
+      folderMap[item.folder].push(item);
+    });
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'folder-btn' + (isOpen && currentView?.folder === null ? ' active' : '');
+    allBtn.innerHTML = `<span class="f-icon">📂</span> 전체 보기 <span class="f-count">${count}</span>`;
+    allBtn.onclick = () => showView(catKey, thinker, null);
+    fl.appendChild(allBtn);
+
+    Object.keys(folderMap).forEach(folder => {
+      const fb = document.createElement('button');
+      fb.className = 'folder-btn' + (isOpen && currentView?.folder === folder ? ' active' : '');
+      fb.innerHTML = `<span class="f-icon">📁</span> ${folder} <span class="f-count">${folderMap[folder].length}</span>`;
+      fb.onclick = () => showView(catKey, thinker, folder);
+      fl.appendChild(fb);
+    });
+
+    el.appendChild(fl);
+  });
+}
+
+function toggleThinker(btn, catKey, thinker) {
+  const fl = document.getElementById(`fl-${catKey}-${thinker}`);
+  const isOpen = fl.classList.contains('open');
+  btn.closest('div').querySelectorAll('.folder-list').forEach(x => x.classList.remove('open'));
+  btn.closest('div').querySelectorAll('.thinker-btn').forEach(x => x.classList.remove('active'));
+  if (!isOpen) {
+    fl.classList.add('open');
+    btn.classList.add('active');
+    showView(catKey, thinker, null);
+  } else {
+    currentView = null;
+    renderMain();
+  }
+}
+
+// ── 메인 렌더 ──
+function showView(cat, thinker, folder) {
+  currentView = { cat, thinker, folder };
+  renderSidebar();
+  renderMain();
+}
+
+function renderMain() {
+  const el = document.getElementById('main-content');
+  if (!currentView) { el.innerHTML = renderWelcome(); return; }
+
+  const { cat, thinker, folder } = currentView;
+  const allItems = appData[cat][thinker] || [];
+  const items    = folder === null ? allItems : allItems.filter(i => i.folder === folder);
+  const catLabel = cat === 'thinker' ? '사상가' : cat === 'topic' ? '주제' : '2027 수능';
+  const folderLabel = folder || '전체 보기';
+
+  const searchVal = document.getElementById('search-input-main')?.value || '';
+  const filtered  = searchVal
+    ? items.filter(i => i.title.includes(searchVal) || (i.tags||[]).join(',').includes(searchVal))
+    : items;
+
+  // 관리자 전용 버튼 (관리자일 때만 렌더)
+  const adminBtns = isAdmin ? `
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm" onclick="toggleDeleteMode()">${deleteMode ? '✅ 완료' : '🗑 관리'}</button>
+      <button class="btn-sm" onclick="openAddModalWith('${cat}','${thinker}',${folder ? `'${folder}'` : 'null'})">＋ 추가</button>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="main-header">
+      <div class="breadcrumb">
+        <span>${catLabel}</span> <span>›</span> <span>${thinker}</span>
+        ${folder ? `<span>›</span><span>${folder}</span>` : ''}
+      </div>
+      <div class="main-title">${thinker} — ${folderLabel}</div>
+      <div class="main-desc">${thinker}의 블로그 게시물 모음입니다. 링크를 클릭하면 네이버 블로그로 이동합니다.</div>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" id="search-input-main" placeholder="제목 또는 태그로 검색…"
+        value="${searchVal}" oninput="renderMain()" />
+    </div>
+    <div class="manage-bar">
+      <span class="result-count">총 ${filtered.length}개</span>
+      ${adminBtns}
+    </div>
+    <div class="link-grid">
+      ${filtered.length === 0 ? renderEmpty() : filtered.map(item => renderCard(item, cat, thinker)).join('')}
+    </div>`;
+}
+
+function renderCard(item, cat, thinker) {
+  const tagsHtml = (item.tags||[]).map(t => `<span class="tag">${t}</span>`).join('');
+  if (deleteMode && isAdmin) {
+    return `
+      <div class="link-card deletable" style="cursor:default">
+        <div class="card-icon">📄</div>
+        <div class="card-body">
+          <div class="card-title">${item.title}</div>
+          <div class="card-meta">${item.folder}</div>
+          ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+        </div>
+        <button class="delete-btn" onclick="deleteItem('${cat}','${thinker}','${item.id}')">🗑</button>
+      </div>`;
+  }
+  return `
+    <a class="link-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+      <div class="card-icon">📄</div>
+      <div class="card-body">
+        <div class="card-title">${item.title}</div>
+        <div class="card-meta">${item.folder}</div>
+        ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+      </div>
+      <span class="card-arrow">→</span>
+    </a>`;
+}
+
+function renderEmpty() {
+  return `<div class="empty">
+    <div class="e-icon">📭</div>
+    <div class="e-title">아직 링크가 없어요</div>
+    <div class="e-sub">${isAdmin ? '오른쪽 하단 ＋ 버튼을 눌러 첫 번째 블로그 링크를 추가해보세요.' : '관리자가 아직 링크를 추가하지 않았어요.'}</div>
+  </div>`;
+}
+
+function renderWelcome() {
+  return `<div class="welcome-hero">
+    <div class="hero-emoji">📚</div>
+    <h2>블로그 링크 정리 도구</h2>
+    <p>왼쪽 사이드바에서 <strong>사상가</strong>, <strong>주제</strong>, <strong>2027 수능 대비 분석</strong> 카테고리를 눌러<br>
+    하위 폴더와 게시물 링크를 확인하세요.</p>
+    <div class="welcome-steps">
+      <div class="step"><div class="step-num">STEP 01</div><div class="step-title">카테고리 선택</div><div class="step-desc">왼쪽에서 사상가, 주제, 수능 중 하나를 클릭해요.</div></div>
+      <div class="step"><div class="step-num">STEP 02</div><div class="step-title">폴더 클릭</div><div class="step-desc">하위 폴더가 펼쳐지면 원하는 폴더를 선택해요.</div></div>
+      <div class="step"><div class="step-num">STEP 03</div><div class="step-title">링크 이동</div><div class="step-desc">글 카드를 클릭하면 네이버 블로그로 이동해요.</div></div>
+    </div>
+  </div>`;
+}
+
+// ── 모달 (링크 추가) ──
+let modalPreset = null;
+
+function openAddModal() {
+  if (!isAdmin) return;
+  modalPreset = null;
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-url').value = '';
+  document.getElementById('f-cat').value = '';
+  document.getElementById('f-folder').innerHTML = '<option value="">대분류를 먼저 선택하세요</option>';
+  document.getElementById('f-tags').value = '';
+  document.getElementById('f-new-folder').style.display = 'none';
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function openAddModalWith(cat, thinker, folder) {
+  if (!isAdmin) return;
+  openAddModal();
+  const catVal = cat === 'thinker' ? '사상가' : cat === 'topic' ? '주제' : '수능';
+  document.getElementById('f-cat').value = catVal;
+  updateSubCats();
+  const sel = document.getElementById('f-folder');
+  Array.from(sel.options).forEach(opt => { if (opt.value === thinker) opt.selected = true; });
+  modalPreset = { cat, thinker, folder };
+}
+
+function updateSubCats() {
+  const cat = document.getElementById('f-cat').value;
+  const sel = document.getElementById('f-folder');
+  sel.innerHTML = '<option value="">선택하세요</option>';
+  const catKey = cat === '사상가' ? 'thinker' : cat === '주제' ? 'topic' : cat === '수능' ? 'exam' : null;
+  if (!catKey) return;
+  Object.keys(appData[catKey]).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify({ catKey, name });
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+function openNewFolderInput() {
+  const inp = document.getElementById('f-new-folder');
+  inp.style.display = 'block';
+  inp.focus();
+}
+function confirmNewFolder() {
+  document.getElementById('f-new-folder').style.display = 'none';
+}
+
+function saveLink() {
+  if (!isAdmin) return;
+  const title     = document.getElementById('f-title').value.trim();
+  const url       = document.getElementById('f-url').value.trim();
+  const catRaw    = document.getElementById('f-cat').value;
+  const folderRaw = document.getElementById('f-folder').value;
+  const newFolder = document.getElementById('f-new-folder').value.trim();
+  const tagsRaw   = document.getElementById('f-tags').value.trim();
+
+  if (!title)  return alert('제목을 입력해주세요.');
+  if (!url)    return alert('URL을 입력해주세요.');
+  if (!catRaw) return alert('대분류를 선택해주세요.');
+
+  let catKey, thinker;
+  try {
+    const parsed = JSON.parse(folderRaw);
+    catKey  = parsed.catKey;
+    thinker = parsed.name;
+  } catch(e) {
+    return alert('세부 폴더(사상가/주제 등)를 선택해주세요.');
+  }
+
+  const folder = newFolder || '기본 폴더';
+  const tags   = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  appData[catKey][thinker].push({ id: Date.now().toString(), title, url, folder, tags });
+  saveData(appData);
+  closeModal();
+  currentView = { cat: catKey, thinker, folder };
+  renderSidebar();
+  renderMain();
+}
+
+function closeModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  document.getElementById('f-new-folder').value = '';
+  document.getElementById('f-new-folder').style.display = 'none';
+}
+
+document.getElementById('add-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── 삭제 ──
+function toggleDeleteMode() {
+  if (!isAdmin) return;
+  deleteMode = !deleteMode;
+  renderMain();
+}
+function deleteItem(cat, thinker, id) {
+  if (!isAdmin) return;
+  if (!confirm('이 링크를 삭제할까요?')) return;
+  appData[cat][thinker] = appData[cat][thinker].filter(i => i.id !== id);
+  saveData(appData);
+  renderSidebar();
+  renderMain();
+}
+
+// ── 사이드바 토글 ──
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-hidden');
+}
+
+// ── 초기화 ──
+applyAdminState();
+renderSidebar();
+renderMain();
+</script>
+</body>
+</html>
